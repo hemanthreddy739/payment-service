@@ -2,7 +2,7 @@ trigger:
   - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: "cloud-matrix-org-runner-pool"
 
 variables:
   nodeVersion: '18.x'
@@ -25,9 +25,8 @@ stages:
           - script: npm test
             displayName: 'Run tests with coverage'
 
-          - task: PublishCodeCoverageResults@1
+          - task: PublishCodeCoverageResults@2
             inputs:
-              codeCoverageTool: Cobertura
               summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage/cobertura-coverage.xml'
               failIfCoverageEmpty: false
             displayName: 'Publish code coverage'
@@ -36,10 +35,11 @@ stages:
           - task: PublishTestResults@2
             inputs:
               testResultsFormat: 'JUnit'
-              testResultsFiles: 'coverage/junit.xml'
+              testResultsFiles: '$(System.DefaultWorkingDirectory)/coverage/junit.xml'
               failTaskOnFailedTests: true
             displayName: 'Publish test results'
             condition: succeededOrFailed()
+
 
   - stage: Security
     displayName: 'Security Scanning'
@@ -59,26 +59,4 @@ stages:
 
           - script: npm audit --production
             displayName: 'Run security audit'
-            continueOnError: true
-
-  - stage: Deploy
-    displayName: 'Deploy Stage'
-    dependsOn: 
-      - Build
-      - Security
-    condition: succeeded()
-    jobs:
-      - job: DeployToProduction
-        displayName: 'Deploy to Production'
-        steps:
-          - task: NodeTool@0
-            inputs:
-              versionSpec: $(nodeVersion)
-            displayName: 'Install Node.js'
-
-          - script: npm install
-            displayName: 'Install dependencies'
-
-          - script: npm start
-            displayName: 'Start payment service'
             continueOnError: true
